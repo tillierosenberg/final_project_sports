@@ -16,6 +16,7 @@ def setUpDatabase(db_name):
 def api():
     lst1 =  []
     lst2 =  []
+    #lst3 = []
     try:
         count_file = open("counter", "r")
         lines = count_file.readlines()
@@ -25,6 +26,8 @@ def api():
             count = 3
         elif '3' in lines[-1]:
             count  = 4
+        elif '4' in lines[-1]:
+            count = 5
         url = "https://www.balldontlie.io/api/v1/stats?page=" + str(count)
         count_file.close()
     except:
@@ -40,58 +43,39 @@ def api():
         assists = j['data'][i]['ast']
         points = j['data'][i]['pts']
         rebounds = j['data'][i]['reb']
-        lst1.append((id, points, rebounds, assists))
-        first_name = j['data'][i]['player']['first_name']
-        last_name = j['data'][i]['player']['last_name']
-        lst2.append((id, first_name + " " + last_name))
+        team_id = j['data'][i]['player']['team_id']
+        team = j['data'][i]['team']['full_name']
+        if id != None and assists != None and points != None and rebounds != None:
+            lst1.append((id, points, rebounds, assists, team_id))
+            first_name = j['data'][i]['player']['first_name']
+            last_name = j['data'][i]['player']['last_name']
+            lst2.append((id, first_name + " " + last_name))
+            # lst3.append((team_id, team))
+    # print(lst3)
     return (lst1, lst2)
 
 
-
-# def create_stats_table(lst, cur, conn):
-#     cur.execute("CREATE TABLE IF NOT EXISTS Stats (player_id INTEGER PRIMARY KEY, points INTEGER, rebounds INTEGER, assists INTEGER)")
-#     """
-#     creates the database for the stats and puts the numbers into it. 
-#     """
-#     #need to limit this to 25 per time
-#     for item in lst:
-#         cur.execute("INSERT OR IGNORE INTO Stats (player_id, points, rebounds, assists) VALUES (?,?,?,?)", (item[0], item[1], item[2], item[3]))
-
-#     conn.commit()
-
 def create_tables(lst, cur, conn):
-    cur.execute("CREATE TABLE IF NOT EXISTS Stats (player_id INTEGER PRIMARY KEY, points INTEGER, rebounds INTEGER, assists INTEGER)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Stats (player_id INTEGER PRIMARY KEY, points INTEGER, rebounds INTEGER, assists INTEGER, team_id INTEGER)")
     """
     creates the database for the stats and puts the numbers into it. 
     """
-    #need to limit this to 25 per time
     for item in lst[0]:
-        cur.execute("INSERT OR IGNORE INTO Stats (player_id, points, rebounds, assists) VALUES (?,?,?,?)", (item[0], item[1], item[2], item[3]))
+        cur.execute("INSERT OR IGNORE INTO Stats (player_id, points, rebounds, assists, team_id) VALUES (?,?,?,?,?)", (item[0], item[1], item[2], item[3], item[4]))
     cur.execute("CREATE TABLE IF NOT EXISTS Players (id INTEGER PRIMARY KEY, name TEXT UNIQUE)")
     for item in lst[1]:
         cur.execute("INSERT OR IGNORE INTO Players (id, name) VALUES (?,?)", (item[0], item[1]))
-
+    # cur.execute("CREATE TABLE IF NOT EXISTS Teams (team_id INTEGER PRIMARY KEY, team TEXT UNIQUE)")
+    # for item in lst[2]:
+    #     cur.execute("INSERT OR IGNORE INTO Teams (team_id, team) VALUES (?,?)", (item[0], item[1]))
+    cur.execute("SELECT * from Players")
+    print(len(cur.fetchall()))
     conn.commit()
-
-
-# def create_player_table(lst, cur, conn):
-#     cur.execute("CREATE TABLE IF NOT EXISTS Players (id INTEGER PRIMARY KEY, name TEXT UNIQUE)")
-#     count = 1
-#     for item in lst:
-#         cur.execute("INSERT OR IGNORE INTO Players (id, name) VALUES (?,?)", (count, item))
-#         count += 1
-#         cur.execute("SELECT MAX(id) FROM Players")
-#         limit = cur.fetchone()
-#         if limit[0] % 25 == 0:
-#             conn.commit()
 
 
 def main():
     # SETUP DATABASE AND TABLE
     cur, conn = setUpDatabase('DATABASE.db')
     create_tables(api(), cur, conn)
-    # create_stats_table(api()[0], cur, conn)
-    # create_player_table(api()[1], cur, conn)
-    
 if __name__ == "__main__":
     main()
