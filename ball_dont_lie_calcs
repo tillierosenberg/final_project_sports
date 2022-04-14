@@ -1,0 +1,85 @@
+
+from dataclasses import is_dataclass
+from re import I
+from bs4 import BeautifulSoup
+import requests
+import sqlite3
+import json
+import os
+import matplotlib
+import matplotlib.pyplot as plt
+
+def setUpDatabase(db_name):
+    path = os.path.dirname(os.path.abspath(__file__))
+    conn = sqlite3.connect(path+'/'+db_name)
+    cur = conn.cursor()
+    return cur, conn
+
+
+def do_calc(cur, conn):
+    cur.execute("SELECT team_id FROM Stats")
+    team_ids = cur.fetchall()
+    id_track = []
+    final = []
+    for item in team_ids:
+        team_id = item[0]
+        if team_id in id_track:
+            continue
+        else:
+            cur.execute("SELECT points FROM Stats WHERE team_id = ?", (team_id,))
+            id_track.append(team_id)
+            lst = cur.fetchall()
+            totals = []
+            for item in lst:
+                totals.append(item[0])
+            total = sum(totals)
+            cur.execute("SELECT Players.name, Stats.points FROM Players JOIN Stats on Players.id = Stats.player_id where team_id = ?", (team_id,))
+            names = cur.fetchall()
+            for item in names:
+                pct = item[1] / total * 100
+                name = item[0]
+                print(pct, name)
+                final.append((team_id, pct, name))
+
+    print(final)
+    return final
+
+def make_vis(lst):
+    inp = input("Enter an NBA team id number, 1-29")
+    try:
+        inp = int(inp)
+        if inp not in list(range(1, 30)):
+            print("Please enter a number 1-29")
+            
+    except:
+        print("Enter a valid number")
+
+    gets = []
+    for item in lst:
+        if item[0] == int(inp):
+            gets.append(item)
+    
+    ids = [item[0] for item in gets]
+    nums = [item[1] for item in gets]
+    names = [item[2] for item in gets]
+
+    plt.pie(nums, labels = names)
+    # Pie chart, where the slices will be ordered and plotted counter-clockwise:
+    labels = names
+    sizes = nums
+
+    fig1, ax1 = plt.subplots()
+    ax1.pie(sizes, labels=labels, autopct='%1.1f%%',
+    shadow=True, startangle=90)
+    ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+
+    plt.show()
+
+def main():
+    # SETUP DATABASE AND TABLE
+    cur, conn = setUpDatabase('DATABASE.db')
+    do_calc(cur, conn)
+    make_vis(do_calc(cur, conn))
+
+if __name__ == "__main__":
+    main()
