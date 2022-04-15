@@ -44,29 +44,26 @@ def api():
         rebounds = j['data'][i]['reb']
         team_id = j['data'][i]['player']['team_id']
         team = j['data'][i]['team']['full_name']
+        game_id = j['data'][i]['game']['id']
         if id != None and assists != None and points != None and rebounds != None:
-            lst1.append((id, points, rebounds, assists, team_id))
+            lst1.append((id, points, rebounds, assists, team_id, game_id))
             first_name = j['data'][i]['player']['first_name']
             last_name = j['data'][i]['player']['last_name']
             lst2.append((id, first_name + " " + last_name))
-            # lst3.append((team_id, team))
-    # print(lst3)
+
     return (lst1, lst2)
 
 
 def create_tables(lst, cur, conn):
-    cur.execute("CREATE TABLE IF NOT EXISTS Stats (player_id INTEGER PRIMARY KEY, points INTEGER, rebounds INTEGER, assists INTEGER, team_id INTEGER)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Stats (player_id INTEGER PRIMARY KEY, points INTEGER, rebounds INTEGER, assists INTEGER, team_id INTEGER, game_id INTEGER)")
     """
     creates the database for the stats and puts the numbers into it. 
     """
     for item in lst[0]:
-        cur.execute("INSERT OR IGNORE INTO Stats (player_id, points, rebounds, assists, team_id) VALUES (?,?,?,?,?)", (item[0], item[1], item[2], item[3], item[4]))
+        cur.execute("INSERT OR IGNORE INTO Stats (player_id, points, rebounds, assists, team_id, game_id) VALUES (?,?,?,?,?,?)", (item[0], item[1], item[2], item[3], item[4], item[5]))
     cur.execute("CREATE TABLE IF NOT EXISTS Players (id INTEGER PRIMARY KEY, name TEXT UNIQUE)")
     for item in lst[1]:
         cur.execute("INSERT OR IGNORE INTO Players (id, name) VALUES (?,?)", (item[0], item[1]))
-    # cur.execute("CREATE TABLE IF NOT EXISTS Teams (team_id INTEGER PRIMARY KEY, team TEXT UNIQUE)")
-    # for item in lst[2]:
-    #     cur.execute("INSERT OR IGNORE INTO Teams (team_id, team) VALUES (?,?)", (item[0], item[1]))
     cur.execute("SELECT * from Players")
     print(len(cur.fetchall()))
     conn.commit()
